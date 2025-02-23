@@ -2,25 +2,13 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/ethereum-optimism/monorepo-hatchet/pkg/cleaner"
 	"github.com/ethereum-optimism/monorepo-hatchet/pkg/pkglist"
 )
-
-func runGoModTidy(sourceDir string) error {
-	cmd := exec.Command("go", "mod", "tidy")
-	cmd.Dir = sourceDir
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to run go mod tidy: %v\nOutput: %s", err, out)
-	}
-	log.Printf("Successfully ran go mod tidy in %s", sourceDir)
-	return nil
-}
 
 func main() {
 	sourceDir := flag.String("dir", "", "Source directory to analyze")
@@ -77,15 +65,9 @@ func main() {
 		cleaner.WithGoModProtection(*protectGoMod),
 		cleaner.WithTestKeeping(*withTests),
 		cleaner.WithDryRun(*dryRun),
+		cleaner.WithGoModTidy(true),
 	)
 	if err := c.Clean(); err != nil {
 		log.Fatalf("Failed to clean directory: %v", err)
-	}
-
-	// Run go mod tidy after cleaning if not in dry run mode
-	if !*dryRun {
-		if err := runGoModTidy(*sourceDir); err != nil {
-			log.Printf("Warning: %v", err)
-		}
 	}
 }

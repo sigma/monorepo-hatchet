@@ -3,8 +3,11 @@ package cleaner
 import (
 	"fmt"
 	"io/fs"
+	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"log"
 
 	"github.com/spf13/afero"
 )
@@ -17,6 +20,7 @@ type Cleaner struct {
 	protectGoMod bool
 	keepTests    bool
 	dryRun       bool
+	runGoModTidy bool
 }
 
 type Option func(*Cleaner)
@@ -46,6 +50,13 @@ func WithDryRun(dryRun bool) Option {
 func WithTestKeeping(keep bool) Option {
 	return func(c *Cleaner) {
 		c.keepTests = keep
+	}
+}
+
+// WithGoModTidy enables or disables running go mod tidy after cleaning
+func WithGoModTidy(enabled bool) Option {
+	return func(c *Cleaner) {
+		c.runGoModTidy = enabled
 	}
 }
 
@@ -137,6 +148,16 @@ func (c *Cleaner) Clean() error {
 	// Third pass: remove empty directories
 	if err := c.removeEmptyDirs(c.sourceDir); err != nil {
 		return fmt.Errorf("failed to clean empty directories: %v", err)
+	}
+
+	// Run go mod tidy after cleaning if requested
+	if !c.dryRun && c.runGoModTidy {
+		cmd := exec.Command("go", "mod", "tidy")
+		cmd.Dir = c.sourceDir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("failed to run go mod tidy: %v\nOutput: %s", err, out)
+		}
+		log.Printf("Successfully ran go mod tidy in %s", c.sourceDir)
 	}
 
 	return nil
