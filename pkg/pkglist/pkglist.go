@@ -12,13 +12,14 @@ import (
 
 // Package represents a Go package with its files and dependencies
 type Package struct {
-	Dir         string
-	ImportPath  string
-	Deps        []string
-	EmbedFiles  []string // Files embedded using //go:embed
-	GoFiles     []string // Regular .go files
-	TestGoFiles []string // Test .go files
-	OtherFiles  []string // Non-Go files in the package directory
+	Dir          string
+	ImportPath   string
+	Deps         []string
+	EmbedFiles   []string // Files embedded using //go:embed
+	GoFiles      []string // Regular .go files
+	TestGoFiles  []string // Test .go files
+	OtherFiles   []string // Non-Go files in the package directory
+	XTestGoFiles []string // Add this field
 }
 
 // Finder handles discovering and filtering Go packages
@@ -117,6 +118,12 @@ func (f *Finder) GetFileList(keepPackages map[string]struct{}, withTests bool) [
 			for _, file := range pkg.TestGoFiles {
 				allFiles = append(allFiles, filepath.Join(pkg.Dir, file))
 				log.Printf("  Keeping test file: %s", filepath.Join(pkg.Dir, file))
+			}
+
+			// Add external test files
+			for _, file := range pkg.XTestGoFiles {
+				allFiles = append(allFiles, filepath.Join(pkg.Dir, file))
+				log.Printf("  Keeping external test file: %s", filepath.Join(pkg.Dir, file))
 			}
 
 			// Add all other files when tests are included

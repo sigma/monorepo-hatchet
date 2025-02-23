@@ -204,6 +204,99 @@ func TestFinder_GetFileList(t *testing.T) {
 				"/test/pkg1/testdata/fixture.json",
 			},
 		},
+		{
+			name: "with XTestGoFiles",
+			packages: map[string]*Package{
+				"pkg1": {
+					Dir:          "/test/pkg1",
+					GoFiles:      []string{"main.go"},
+					TestGoFiles:  []string{"main_test.go"},
+					XTestGoFiles: []string{"export_test.go"},
+				},
+			},
+			keepPackages: map[string]struct{}{
+				"pkg1": {},
+			},
+			withTests: true,
+			want: []string{
+				"/test/pkg1/main.go",
+				"/test/pkg1/main_test.go",
+				"/test/pkg1/export_test.go",
+			},
+		},
+		{
+			name: "with embedded files",
+			packages: map[string]*Package{
+				"pkg1": {
+					Dir:          "/test/pkg1",
+					GoFiles:      []string{"main.go"},
+					EmbedFiles:   []string{"embed/data.json", "embed/config.yaml"},
+					TestGoFiles:  []string{"main_test.go"},
+					XTestGoFiles: []string{"export_test.go"},
+				},
+			},
+			keepPackages: map[string]struct{}{
+				"pkg1": {},
+			},
+			withTests: true,
+			want: []string{
+				"/test/pkg1/main.go",
+				"/test/pkg1/main_test.go",
+				"/test/pkg1/export_test.go",
+				"/test/pkg1/embed/data.json",
+				"/test/pkg1/embed/config.yaml",
+			},
+		},
+		{
+			name: "without tests should exclude test files",
+			packages: map[string]*Package{
+				"pkg1": {
+					Dir:          "/test/pkg1",
+					GoFiles:      []string{"main.go"},
+					EmbedFiles:   []string{"embed/data.json"},
+					TestGoFiles:  []string{"main_test.go"},
+					XTestGoFiles: []string{"export_test.go"},
+				},
+			},
+			keepPackages: map[string]struct{}{
+				"pkg1": {},
+			},
+			withTests: false,
+			want: []string{
+				"/test/pkg1/main.go",
+				"/test/pkg1/embed/data.json",
+			},
+		},
+		{
+			name: "multiple packages with various file types",
+			packages: map[string]*Package{
+				"pkg1": {
+					Dir:         "/test/pkg1",
+					GoFiles:     []string{"main.go"},
+					EmbedFiles:  []string{"embed/data.json"},
+					TestGoFiles: []string{"main_test.go"},
+				},
+				"pkg2": {
+					Dir:          "/test/pkg2",
+					GoFiles:      []string{"util.go"},
+					XTestGoFiles: []string{"util_export_test.go"},
+					OtherFiles:   []string{"testdata/sample.txt"},
+				},
+			},
+			keepPackages: map[string]struct{}{
+				"pkg1": {},
+				"pkg2": {},
+			},
+			withTests: true,
+			want: []string{
+				"/test/pkg1/main.go",
+				"/test/pkg1/main_test.go",
+				"/test/pkg1/embed/data.json",
+				"/test/pkg2/util.go",
+				"/test/pkg2/util_export_test.go",
+				"/test/pkg2/testdata/sample.txt",
+			},
+		},
 	}
 
 	for _, tt := range tests {
