@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ethereum-optimism/monorepo-hatchet/pkg/cleaner"
-	"github.com/ethereum-optimism/monorepo-hatchet/pkg/pkglist"
+	"github.com/sigma/monorepo-hatchet/pkg/cleaner"
+	"github.com/sigma/monorepo-hatchet/pkg/pkglist"
 )
 
 func main() {

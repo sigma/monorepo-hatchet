@@ -1,4 +1,4 @@
-module github.com/ethereum-optimism/monorepo-hatchet
+module github.com/sigma/monorepo-hatchet
 
 go 1.22.0
 
