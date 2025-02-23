@@ -13,14 +13,15 @@ import (
 )
 
 type Cleaner struct {
-	sourceDir    string
-	filesToKeep  map[string]struct{}
-	fs           afero.Fs
-	protectGit   bool
-	protectGoMod bool
-	keepTests    bool
-	dryRun       bool
-	runGoModTidy bool
+	sourceDir      string
+	filesToKeep    map[string]struct{}
+	fs             afero.Fs
+	protectGit     bool
+	protectGoMod   bool
+	keepTests      bool
+	dryRun         bool
+	runGoModTidy   bool
+	protectedPaths []string
 }
 
 type Option func(*Cleaner)
@@ -57,6 +58,12 @@ func WithTestKeeping(keep bool) Option {
 func WithGoModTidy(enabled bool) Option {
 	return func(c *Cleaner) {
 		c.runGoModTidy = enabled
+	}
+}
+
+func WithProtectedPaths(paths []string) Option {
+	return func(c *Cleaner) {
+		c.protectedPaths = paths
 	}
 }
 
@@ -108,14 +115,19 @@ func (c *Cleaner) Clean() error {
 			return fmt.Errorf("failed to get absolute path for %s: %v", path, err)
 		}
 
+		var relPath string
 		// Keep files that are in our keep list
 		if _, keep := c.filesToKeep[absPath]; keep {
 			return nil
 		}
 
 		// Keep .git files if protection is enabled
-		if c.protectGit && strings.Contains(absPath, "/.git/") {
-			return nil
+		if c.protectGit {
+			// Check if the path is .git or is under .git directory
+			relPath, err := filepath.Rel(c.sourceDir, absPath)
+			if err == nil && (relPath == ".git" || strings.HasPrefix(relPath, ".git"+string(filepath.Separator))) {
+				return nil
+			}
 		}
 
 		// Handle testdata directories
@@ -126,6 +138,17 @@ func (c *Cleaner) Clean() error {
 			base := filepath.Base(absPath)
 			if base == "go.mod" || base == "go.sum" {
 				return nil
+			}
+		}
+
+		// Check against protected paths
+		relPath, err = filepath.Rel(c.sourceDir, absPath)
+		if err == nil {
+			for _, protectedPath := range c.protectedPaths {
+				// Check if the file is the protected path or is under a protected directory
+				if relPath == protectedPath || strings.HasPrefix(relPath, protectedPath+string(filepath.Separator)) {
+					return nil
+				}
 			}
 		}
 

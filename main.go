@@ -16,6 +16,7 @@ func main() {
 	withTests := flag.Bool("with-tests", false, "Include test files for kept packages")
 	protectGit := flag.Bool("protect-git", true, "Protect .git directories from being cleaned")
 	protectGoMod := flag.Bool("protect-gomod", true, "Protect go.mod and go.sum files from being cleaned")
+	protectFiles := flag.String("protect-files", "", "Comma-separated list of files/directories to protect (paths relative to source directory)")
 	dryRun := flag.Bool("dry-run", false, "Don't actually remove files, just show what would be done")
 	flag.Parse()
 
@@ -32,6 +33,16 @@ func main() {
 
 	if *sourceDir == "" {
 		log.Fatalf("Source directory is required")
+	}
+
+	// Process protected file paths
+	var protectedPaths []string
+	if *protectFiles != "" {
+		protectedPaths = strings.Split(*protectFiles, ",")
+		for i, p := range protectedPaths {
+			// Clean and normalize the path
+			protectedPaths[i] = filepath.Clean(strings.TrimSpace(p))
+		}
 	}
 
 	absSourceDir, err := filepath.Abs(*sourceDir)
@@ -66,6 +77,7 @@ func main() {
 		cleaner.WithTestKeeping(*withTests),
 		cleaner.WithDryRun(*dryRun),
 		cleaner.WithGoModTidy(true),
+		cleaner.WithProtectedPaths(protectedPaths),
 	)
 	if err := c.Clean(); err != nil {
 		log.Fatalf("Failed to clean directory: %v", err)
